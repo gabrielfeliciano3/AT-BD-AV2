@@ -1,0 +1,212 @@
+/*
+Fábio Faustino 
+
+Gabriel Feliciano 
+
+Júlio Cesar 
+
+Kauã Oliveira 
+
+Rhuan Pietro 
+
+*/
+
+-- MySQL Workbench Forward Engineering
+
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+
+-- -----------------------------------------------------
+-- Schema mydb
+-- -----------------------------------------------------
+
+-- -----------------------------------------------------
+-- Schema mydb
+-- -----------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS `seed_go` DEFAULT CHARACTER SET utf8 ;
+USE `seed_go` ;
+
+-- -----------------------------------------------------
+-- Table `mydb`.`agricultores`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `seed_go`.`agricultores` (
+  `id_agricultores` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(45) NOT NULL,
+  `cpf` CHAR(11) NOT NULL,
+  `endereco` VARCHAR(150) NOT NULL,
+  `telefone` VARCHAR(15) NOT NULL,
+  `email` VARCHAR(80) NULL,
+  `registro_ipa` VARCHAR(20) NOT NULL,
+  `data_cadastro` DATE NOT NULL,
+  PRIMARY KEY (`id_agricultores`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`semente`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `seed_go`.`semente` (
+  `id_semente` INT NOT NULL AUTO_INCREMENT,
+  `nome_semente` VARCHAR(50) NOT NULL,
+  `tipo_cultura` VARCHAR(50) NOT NULL,
+  `lote` VARCHAR(45) NOT NULL,
+  `data_validade` DATE NOT NULL,
+  `origem` VARCHAR(100) NOT NULL,
+  `quat_disponivel` DECIMAL(10,2) NULL,
+  PRIMARY KEY (`id_semente`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`distribuicoes`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `seed_go`.`distribuicoes` (
+  `id_distribuicao` INT NOT NULL AUTO_INCREMENT,
+  `quantidade_entregue` DECIMAL(10,2) NOT NULL,
+  `data_entrega` DATE NOT NULL,
+  `responsavel_entrega` VARCHAR(80) NOT NULL,
+  `status_sync` TINYINT NULL,
+  `agricultores_id_agricultores` INT NOT NULL,
+  `semente_id_semente` INT NOT NULL,
+  PRIMARY KEY (`id_distribuicao`, `agricultores_id_agricultores`, `semente_id_semente`),
+  INDEX `fk_distribuicoes_agricultores_idx` (`agricultores_id_agricultores` ASC) VISIBLE,
+  INDEX `fk_distribuicoes_semente1_idx` (`semente_id_semente` ASC) VISIBLE,
+  CONSTRAINT `fk_distribuicoes_agricultores`
+    FOREIGN KEY (`agricultores_id_agricultores`)
+    REFERENCES `seed_go`.`agricultores` (`id_agricultores`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_distribuicoes_semente1`
+    FOREIGN KEY (`semente_id_semente`)
+    REFERENCES `seed_go`.`semente` (`id_semente`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`cultivos`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `seed_go`.`cultivos` (
+  `idcultivos` INT NOT NULL AUTO_INCREMENT,
+  `id_distribuicao` INT NOT NULL,
+  `data_registro` DATE NOT NULL,
+  `foto_lavoura` VARCHAR(255) NOT NULL,
+  `descricao` TEXT NOT NULL,
+  `fase_crescimento` ENUM('plantio', 'crescimento', 'floracao', 'colheita') NOT NULL,
+  `distribuicoes_id_distribuicao` INT NOT NULL,
+  `distribuicoes_agricultores_id_agricultores` INT NOT NULL,
+  `distribuicoes_semente_id_semente` INT NOT NULL,
+  PRIMARY KEY (`idcultivos`, `distribuicoes_id_distribuicao`, `distribuicoes_agricultores_id_agricultores`, `distribuicoes_semente_id_semente`),
+  INDEX `fk_cultivos_distribuicoes1_idx` (`distribuicoes_id_distribuicao` ASC, `distribuicoes_agricultores_id_agricultores` ASC, `distribuicoes_semente_id_semente` ASC) VISIBLE,
+  CONSTRAINT `fk_cultivos_distribuicoes1`
+    FOREIGN KEY (`distribuicoes_id_distribuicao` , `distribuicoes_agricultores_id_agricultores` , `distribuicoes_semente_id_semente`)
+    REFERENCES `seed_go`.`distribuicoes` (`id_distribuicao` , `agricultores_id_agricultores` , `semente_id_semente`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`tecnicos`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `seed_go`.`tecnicos` (
+  `idtecnicos` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(45) NOT NULL,
+  `email` VARCHAR(45) NOT NULL,
+  `telefone` VARCHAR(45) NOT NULL,
+  `area_responsavel` VARCHAR(45) NOT NULL,
+  `distribuicoes_id_distribuicao` INT NOT NULL,
+  `distribuicoes_agricultores_id_agricultores` INT NOT NULL,
+  `distribuicoes_semente_id_semente` INT NOT NULL,
+  `usuarios_id_usuario` INT NOT NULL,
+  PRIMARY KEY (`idtecnicos`, `distribuicoes_id_distribuicao`, `distribuicoes_agricultores_id_agricultores`, `distribuicoes_semente_id_semente`, `usuarios_id_usuario`),
+  INDEX `fk_tecnicos_distribuicoes1_idx` (`distribuicoes_id_distribuicao` ASC, `distribuicoes_agricultores_id_agricultores` ASC, `distribuicoes_semente_id_semente` ASC) VISIBLE,
+  CONSTRAINT `fk_tecnicos_distribuicoes1`
+    FOREIGN KEY (`distribuicoes_id_distribuicao` , `distribuicoes_agricultores_id_agricultores` , `distribuicoes_semente_id_semente`)
+    REFERENCES `seed_go`.`distribuicoes` (`id_distribuicao` , `agricultores_id_agricultores` , `semente_id_semente`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`rastreabilidade`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `seed_go`.`rastreabilidade` (
+  `id_rastreio` INT NOT NULL AUTO_INCREMENT,
+  `origem` VARCHAR(100) NOT NULL,
+  `destino` VARCHAR(45) NOT NULL,
+  `data_movimentacao` date NOT NULL,
+  `tipo_movimentacao` ENUM('entrada', 'saida', 'retorno') NOT NULL,
+  `observacoes` TEXT NOT NULL,
+  `semente_id_semente` INT NOT NULL,
+  PRIMARY KEY (`id_rastreio`, `semente_id_semente`),
+  INDEX `fk_rastreabilidade_semente1_idx` (`semente_id_semente` ASC) VISIBLE,
+  CONSTRAINT `fk_rastreabilidade_semente1`
+    FOREIGN KEY (`semente_id_semente`)
+    REFERENCES `seed_go`.`semente` (`id_semente`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`usuarios`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `seed_go`.`usuarios` (
+  `id_usuario` INT NOT NULL AUTO_INCREMENT,
+  `nome_usuario` VARCHAR(80) NOT NULL,
+  `email` VARCHAR(100) NOT NULL,
+  `senha_hash` VARCHAR(255) NOT NULL,
+  `tipo_usuario` ENUM('agricultor', 'tecnico', 'admin') NOT NULL,
+  `id_en_ti_us` INT NULL,
+  `ativo` TINYINT NOT NULL,
+  PRIMARY KEY (`id_usuario`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`sincronizacoes`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `seed_go`.`sincronizacoes` (
+  `id_sync` INT NOT NULL AUTO_INCREMENT,
+  `tabela_afetada` VARCHAR(45) NULL,
+  `data_sync` DATETIME NULL,
+  `status` VARCHAR(45) NULL,
+  `detalhes` TEXT NULL,
+  `usuarios_id_usuario` INT NOT NULL,
+  PRIMARY KEY (`id_sync`, `usuarios_id_usuario`),
+  INDEX `fk_sincronizacoes_usuarios1_idx` (`usuarios_id_usuario` ASC) VISIBLE,
+  CONSTRAINT `fk_sincronizacoes_usuarios1`
+    FOREIGN KEY (`usuarios_id_usuario`)
+    REFERENCES `seed_go`.`usuarios` (`id_usuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`historico_registros`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `seed_go`.`historico_registros` (
+  `idhistorico_registros` INT NOT NULL AUTO_INCREMENT,
+  `tabela` VARCHAR(45) NULL,
+  `id_registro` INT NULL,
+  `acao` ENUM('inserir', 'atualizar', 'excluir') NULL,
+  `data_acao` DATETIME NULL,
+  `usuarios_id_usuario` INT NOT NULL,
+  PRIMARY KEY (`idhistorico_registros`, `usuarios_id_usuario`),
+  INDEX `fk_historico_registros_usuarios1_idx` (`usuarios_id_usuario` ASC) VISIBLE,
+  CONSTRAINT `fk_historico_registros_usuarios1`
+    FOREIGN KEY (`usuarios_id_usuario`)
+    REFERENCES `seed_go`.`usuarios` (`id_usuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
