@@ -1,0 +1,117 @@
+-- 1. View para relatório geral de distribuições
+CREATE OR REPLACE VIEW vw_relatorio_distribuicoes AS
+SELECT
+    d.id_distribuicao,
+    a.nome AS agricultor,
+    a.cpf,
+    s.nome_semente,
+    s.lote,
+    d.quantidade_entregue,
+    d.data_entrega,
+    d.responsavel_entrega
+FROM distribuicoes d
+JOIN agricultores a ON d.agricultores_id_agricultores = a.id_agricultores
+JOIN semente s ON d.semente_id_semente = s.id_semente;
+
+-- 2. View para acompanhamento de cultivos
+CREATE OR REPLACE VIEW vw_acompanhamento_cultivos AS
+SELECT
+    a.nome AS agricultor,
+    s.nome_semente,
+    c.data_registro,
+    c.fase_crescimento,
+    c.descricao
+FROM cultivos c
+JOIN distribuicoes d ON c.distribuicoes_id_distribuicao = d.id_distribuicao
+JOIN agricultores a ON d.agricultores_id_agricultores = a.id_agricultores
+JOIN semente s ON d.semente_id_semente = s.id_semente;
+
+-- 3. View para controle de estoque de sementes
+CREATE OR REPLACE VIEW vw_estoque_sementes AS
+SELECT
+    id_semente,
+    nome_semente,
+    tipo_cultura,
+    lote,
+    quat_disponivel,
+    data_validade
+FROM semente
+WHERE quat_disponivel > 0;
+
+-- 4. View para relatório de técnicos e suas áreas
+CREATE OR REPLACE VIEW vw_tecnicos_por_area AS
+SELECT
+    area_responsavel,
+    nome AS nome_tecnico,
+    email,
+    telefone
+FROM tecnicos
+GROUP BY area_responsavel, nome, email, telefone
+ORDER BY area_responsavel;
+
+-- 5. View para auditoria de sincronizações com falha
+CREATE OR REPLACE VIEW vw_sincronizacoes_com_falha AS
+SELECT
+    s.id_sync,
+    u.nome_usuario,
+    s.tabela_afetada,
+    s.data_sync,
+    s.detalhes
+FROM sincronizacoes s
+JOIN usuarios u ON s.usuarios_id_usuario = u.id_usuario
+WHERE s.status = 'erro';
+
+-- 6. View para rastreabilidade completa das sementes
+CREATE OR REPLACE VIEW vw_rastreabilidade_completa AS
+SELECT
+    s.nome_semente,
+    s.lote,
+    r.origem,
+    r.destino,
+    r.data_movimentacao,
+    r.tipo_movimentacao,
+    r.observacoes
+FROM rastreabilidade r
+JOIN semente s ON r.semente_id_semente = s.id_semente;
+
+-- 7. View de agricultores por cidade (extraindo da string de endereço)
+CREATE OR REPLACE VIEW vw_agricultores_por_cidade AS
+SELECT
+    nome,
+    telefone,
+    SUBSTRING_INDEX(endereco, ' - ', -1) AS cidade
+FROM agricultores
+ORDER BY cidade;
+
+-- 8. View de total de sementes distribuídas por agricultor
+CREATE OR REPLACE VIEW vw_total_sementes_por_agricultor AS
+SELECT
+    a.nome,
+    SUM(d.quantidade_entregue) AS total_recebido_kg
+FROM agricultores a
+JOIN distribuicoes d ON a.id_agricultores = d.agricultores_id_agricultores
+GROUP BY a.nome
+ORDER BY total_recebido_kg DESC;
+
+-- 9. View de sementes próximas do vencimento (vencem nos próximos 6 meses)
+CREATE OR REPLACE VIEW vw_sementes_proximas_vencimento AS
+SELECT
+    nome_semente,
+    lote,
+    data_validade,
+    quat_disponivel
+FROM semente
+WHERE data_validade BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 6 MONTH);
+
+-- 10. View de histórico de ações por tabela
+CREATE OR REPLACE VIEW vw_auditoria_por_tabela AS
+SELECT
+    tabela,
+    acao,
+    COUNT(idhistorico_registros) AS quantidade,
+    MAX(data_acao) AS ultima_acao
+FROM historico_registros
+GROUP BY tabela, acao
+ORDER BY tabela, acao;
+
+select * from vw_auditoria_por_tabela;
